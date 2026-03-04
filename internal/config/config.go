@@ -771,7 +771,7 @@ func (c *Config) SetupAgents() {
 			Description:  "An agent that helps with searching for context and finding implementation details.",
 			Model:        SelectedModelTypeLarge,
 			ContextPaths: c.Options.ContextPaths,
-			AllowedTools: resolveReadOnlyTools(allowedTools),
+			AllowedTools: allowedTools,
 			// NO MCPs or LSPs by default
 			AllowedMCP: map[string][]string{},
 		},
