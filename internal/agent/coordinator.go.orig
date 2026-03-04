@@ -366,12 +366,6 @@ func (c *coordinator) buildAgent(ctx context.Context, prompt *prompt.Prompt, age
 		return nil, err
 	}
 
-	// Sub-agents use the small model for inference by swapping large/small,
-	// since Run() always uses largeModel. This lets the "thinking" model
-	// orchestrate while the "agentic" model executes tasks.
-	if isSubAgent {
-		large, small = small, large
-	}
 	largeProviderCfg, _ := c.cfg.Providers.Get(large.ModelCfg.Provider)
 	result := NewSessionAgent(SessionAgentOptions{
 		large,
