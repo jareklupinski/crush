@@ -127,7 +127,6 @@ func (c *coordinator) Run(ctx context.Context, sessionID string, prompt string, 
 	}
 
 	model := c.currentAgent.Model()
-	slog.Info("Coordinator.Run", "model", model.ModelCfg.Model, "provider", model.ModelCfg.Provider, "maxTokens", model.CatwalkCfg.DefaultMaxTokens, "contextWindow", model.CatwalkCfg.ContextWindow)
 	maxTokens := model.CatwalkCfg.DefaultMaxTokens
 	if model.ModelCfg.MaxTokens != 0 {
 		maxTokens = model.ModelCfg.MaxTokens
@@ -375,14 +374,6 @@ func (c *coordinator) buildAgent(ctx context.Context, prompt *prompt.Prompt, age
 	if isSubAgent {
 		inferenceModel = small
 	}
-
-	slog.Info("Building agent",
-		"isSubAgent", isSubAgent,
-		"inferenceModel", inferenceModel.ModelCfg.Model,
-		"inferenceProvider", inferenceModel.ModelCfg.Provider,
-		"smallModel", small.ModelCfg.Model,
-		"largeModel", large.ModelCfg.Model,
-	)
 
 	providerCfg, _ := c.cfg.Providers.Get(inferenceModel.ModelCfg.Provider)
 	result := NewSessionAgent(SessionAgentOptions{
@@ -896,7 +887,6 @@ func (c *coordinator) UpdateModels(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	slog.Info("UpdateModels", "large", large.ModelCfg.Model, "small", small.ModelCfg.Model)
 	c.currentAgent.SetModels(large, small)
 
 	agentCfg, ok := c.cfg.Agents[config.AgentCoder]
