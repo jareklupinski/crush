@@ -190,6 +190,14 @@ func (a *sessionAgent) Run(ctx context.Context, call SessionAgentCall) (*fantasy
 		agentTools[len(agentTools)-1].SetProviderOptions(a.getCacheControlOptions())
 	}
 
+	slog.Info("SessionAgent.Run",
+		"isSubAgent", a.isSubAgent,
+		"largeModel", largeModel.ModelCfg.Model,
+		"largeProvider", largeModel.ModelCfg.Provider,
+		"numTools", len(agentTools),
+		"sessionID", call.SessionID,
+	)
+
 	agent := fantasy.NewAgent(
 		largeModel.Model,
 		fantasy.WithSystemPrompt(systemPrompt),
