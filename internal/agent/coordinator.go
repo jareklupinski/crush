@@ -127,6 +127,7 @@ func (c *coordinator) Run(ctx context.Context, sessionID string, prompt string, 
 	}
 
 	model := c.currentAgent.Model()
+	slog.Info("Coordinator.Run", "model", model.ModelCfg.Model, "provider", model.ModelCfg.Provider, "maxTokens", model.CatwalkCfg.DefaultMaxTokens, "contextWindow", model.CatwalkCfg.ContextWindow)
 	maxTokens := model.CatwalkCfg.DefaultMaxTokens
 	if model.ModelCfg.MaxTokens != 0 {
 		maxTokens = model.ModelCfg.MaxTokens
@@ -366,17 +367,28 @@ func (c *coordinator) buildAgent(ctx context.Context, prompt *prompt.Prompt, age
 		return nil, err
 	}
 
-	// Sub-agents use the small model for inference by swapping large/small,
-	// since Run() always uses largeModel. This lets the "thinking" model
-	// orchestrate while the "agentic" model executes tasks.
+	// Determine the inference model. The main agent (orchestrator) uses the
+	// large model for thinking/planning. Subagents use the small model for
+	// task execution—the large model's role is its bigger context window for
+	// orchestration, not direct coding work.
+	inferenceModel := large
 	if isSubAgent {
-		large, small = small, large
+		inferenceModel = small
 	}
-	largeProviderCfg, _ := c.cfg.Providers.Get(large.ModelCfg.Provider)
+
+	slog.Info("Building agent",
+		"isSubAgent", isSubAgent,
+		"inferenceModel", inferenceModel.ModelCfg.Model,
+		"inferenceProvider", inferenceModel.ModelCfg.Provider,
+		"smallModel", small.ModelCfg.Model,
+		"largeModel", large.ModelCfg.Model,
+	)
+
+	providerCfg, _ := c.cfg.Providers.Get(inferenceModel.ModelCfg.Provider)
 	result := NewSessionAgent(SessionAgentOptions{
-		large,
+		inferenceModel,
 		small,
-		largeProviderCfg.SystemPromptPrefix,
+		providerCfg.SystemPromptPrefix,
 		"",
 		isSubAgent,
 		c.cfg.Options.DisableAutoSummarize,
@@ -387,7 +399,7 @@ func (c *coordinator) buildAgent(ctx context.Context, prompt *prompt.Prompt, age
 	})
 
 	c.readyWg.Go(func() error {
-		systemPrompt, err := prompt.Build(ctx, large.Model.Provider(), large.Model.Model(), *c.cfg)
+		systemPrompt, err := prompt.Build(ctx, inferenceModel.Model.Provider(), inferenceModel.Model.Model(), *c.cfg)
 		if err != nil {
 			return err
 		}
@@ -884,6 +896,7 @@ func (c *coordinator) UpdateModels(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	slog.Info("UpdateModels", "large", large.ModelCfg.Model, "small", small.ModelCfg.Model)
 	c.currentAgent.SetModels(large, small)
 
 	agentCfg, ok := c.cfg.Agents[config.AgentCoder]

@@ -464,11 +464,11 @@ func TestConfig_setupAgentsWithNoDisabledTools(t *testing.T) {
 	cfg.SetupAgents()
 	coderAgent, ok := cfg.Agents[AgentCoder]
 	require.True(t, ok)
-	assert.Equal(t, allToolNames(), coderAgent.AllowedTools)
+	assert.Equal(t, resolveOrchestratorTools(allToolNames()), coderAgent.AllowedTools)
 
 	taskAgent, ok := cfg.Agents[AgentTask]
 	require.True(t, ok)
-	assert.Equal(t, allToolNames(), taskAgent.AllowedTools)
+	assert.Equal(t, resolveTaskAgentTools(allToolNames()), taskAgent.AllowedTools)
 }
 
 func TestConfig_setupAgentsWithDisabledTools(t *testing.T) {
@@ -486,11 +486,12 @@ func TestConfig_setupAgentsWithDisabledTools(t *testing.T) {
 	coderAgent, ok := cfg.Agents[AgentCoder]
 	require.True(t, ok)
 
-	assert.Equal(t, []string{"agent", "bash", "job_output", "job_kill", "multiedit", "lsp_diagnostics", "lsp_references", "lsp_restart", "fetch", "agentic_fetch", "glob", "ls", "sourcegraph", "todos", "view", "write", "list_mcp_resources", "read_mcp_resource"}, coderAgent.AllowedTools)
+	allowed := resolveAllowedTools(allToolNames(), cfg.Options.DisabledTools)
+	assert.Equal(t, resolveOrchestratorTools(allowed), coderAgent.AllowedTools)
 
 	taskAgent, ok := cfg.Agents[AgentTask]
 	require.True(t, ok)
-	assert.Equal(t, coderAgent.AllowedTools, taskAgent.AllowedTools)
+	assert.Equal(t, resolveTaskAgentTools(allowed), taskAgent.AllowedTools)
 }
 
 func TestConfig_setupAgentsWithEveryReadOnlyToolDisabled(t *testing.T) {
@@ -509,11 +510,13 @@ func TestConfig_setupAgentsWithEveryReadOnlyToolDisabled(t *testing.T) {
 	cfg.SetupAgents()
 	coderAgent, ok := cfg.Agents[AgentCoder]
 	require.True(t, ok)
-	assert.Equal(t, []string{"agent", "bash", "job_output", "job_kill", "download", "edit", "multiedit", "lsp_diagnostics", "lsp_references", "lsp_restart", "fetch", "agentic_fetch", "todos", "write", "list_mcp_resources", "read_mcp_resource"}, coderAgent.AllowedTools)
+
+	allowed := resolveAllowedTools(allToolNames(), cfg.Options.DisabledTools)
+	assert.Equal(t, resolveOrchestratorTools(allowed), coderAgent.AllowedTools)
 
 	taskAgent, ok := cfg.Agents[AgentTask]
 	require.True(t, ok)
-	assert.Equal(t, coderAgent.AllowedTools, taskAgent.AllowedTools)
+	assert.Equal(t, resolveTaskAgentTools(allowed), taskAgent.AllowedTools)
 }
 
 func TestConfig_configureProvidersWithDisabledProvider(t *testing.T) {

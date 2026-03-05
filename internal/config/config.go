@@ -734,6 +734,28 @@ func resolveAllowedTools(allTools []string, disabledTools []string) []string {
 	return filterSlice(allTools, disabledTools, false)
 }
 
+// resolveOrchestratorTools returns only the tools the orchestrator needs:
+// delegation tools (agent, agentic_fetch) and lightweight read-only tools
+// for context gathering. The orchestrator delegates all writing/editing to
+// sub-agents.
+func resolveOrchestratorTools(tools []string) []string {
+	orchestratorTools := []string{
+		"agent", "agentic_fetch",
+		"glob", "grep", "ls", "sourcegraph", "view",
+		"todos",
+		"lsp_diagnostics", "lsp_references",
+		"list_mcp_resources", "read_mcp_resource",
+	}
+	return filterSlice(tools, orchestratorTools, true)
+}
+
+// resolveTaskAgentTools returns all tools except those that spawn
+// sub-agents ("agent", "agentic_fetch") to prevent infinite recursion.
+func resolveTaskAgentTools(tools []string) []string {
+	subAgentTools := []string{"agent", "agentic_fetch"}
+	return filterSlice(tools, subAgentTools, false)
+}
+
 func resolveReadOnlyTools(tools []string) []string {
 	readOnlyTools := []string{"glob", "grep", "ls", "sourcegraph", "view"}
 	// filter to only include tools that are in allowedtools (include mode)
@@ -758,20 +780,20 @@ func (c *Config) SetupAgents() {
 	agents := map[string]Agent{
 		AgentCoder: {
 			ID:           AgentCoder,
-			Name:         "Coder",
-			Description:  "An agent that helps with executing coding tasks.",
+			Name:         "Orchestrator",
+			Description:  "The thinking agent that plans and delegates tasks to sub-agents.",
 			Model:        SelectedModelTypeLarge,
 			ContextPaths: c.Options.ContextPaths,
-			AllowedTools: allowedTools,
+			AllowedTools: resolveOrchestratorTools(allowedTools),
 		},
 
 		AgentTask: {
 			ID:           AgentTask,
 			Name:         "Task",
-			Description:  "An agent that helps with searching for context and finding implementation details.",
+			Description:  "An agent that executes coding tasks delegated by the orchestrator.",
 			Model:        SelectedModelTypeLarge,
 			ContextPaths: c.Options.ContextPaths,
-			AllowedTools: allowedTools,
+			AllowedTools: resolveTaskAgentTools(allowedTools),
 			// NO MCPs or LSPs by default
 			AllowedMCP: map[string][]string{},
 		},
